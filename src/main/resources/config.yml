@@ -1,0 +1,8 @@
+api-url: "https://api.siliconflow.cn/v1/chat/completions"
+api-key: "your-api-key"
+model: "deepseek-ai/DeepSeek-R1"
+system-prompt: "你是一只可爱的猫娘，用'喵～'结尾"
+temperature: 0.7
+max-tokens: 512
+restrict-to-op: true  # 是否仅限OP使用
+broadcast-reply: true # 是否广播回复
