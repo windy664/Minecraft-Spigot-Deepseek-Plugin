@@ -3,10 +3,14 @@ package com.example.meowplugin;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -17,16 +21,56 @@ import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-public class MeowPlugin extends JavaPlugin {
+public class MeowPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
         saveDefaultConfig(); // 生成默认配置
         reloadConfig();      // 加载配置
         getCommand("meow").setExecutor(this);
+    //    getServer().getPluginManager().registerEvents(new ChatListener(), this);
+        getServer().getPluginManager().registerEvents(this, this);
     }
+    @EventHandler
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        String message = event.getMessage();
 
+        if (message.regionMatches(true, 0, "星风", 0, 2)) {
+
+
+            // 异步环境下提取参数
+            String content = message.substring(2).trim();
+            String[] args = content.split(" +");
+            String command = "meow" + (content.isEmpty() ? "" : " " + String.join(" ", args));
+
+            // 将命令执行移至主线程
+            Bukkit.getScheduler().runTask(this, () -> {
+                try {
+                    // 执行命令
+                    Bukkit.dispatchCommand(player, command);
+
+                    // 构建日志信息
+                    String logMessage = String.format(
+                            "[星风触发] 玩家：%s | 时间：%s | 原消息：%s | 执行命令：%s",
+                            player.getName(),
+                            new SimpleDateFormat("HH:mm:ss").format(new Date()),
+                            message,
+                            command
+                    );
+
+                    // 主线程日志记录
+                    getLogger().info(logMessage);
+
+                } catch (Exception e) {
+                    getLogger().severe("执行星风指令时发生错误: " + e.getMessage());
+                }
+            });
+        }
+    }
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         // 权限检查
@@ -60,10 +104,7 @@ public class MeowPlugin extends JavaPlugin {
     }
 
     private void processQuery(CommandSender sender, String query, int retryCount) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "控制台不能使用此命令");
-            return;
-        }
+
 
         new Thread(() -> {
             try {
@@ -103,17 +144,17 @@ public class MeowPlugin extends JavaPlugin {
                         StringBuilder response = new StringBuilder();
                         String line;
                         while ((line = br.readLine()) != null) response.append(line);
-                        sendFormattedResponse(sender, query, parseApiResponse(response.toString()));
+                        sendFormattedResponse(sender,parseApiResponse(response.toString()));
                     }
                 } else {
                     sendErrorMessage(sender, "API错误: " + conn.getResponseCode());
                 }
             } catch (SocketTimeoutException e) {
                 if (retryCount < 3) {
-                    sendFormattedResponse(sender, query, ChatColor.RED + "请求超时，正在重试...");
+                    sendFormattedResponse(sender, ChatColor.RED + "请求超时，正在重试...");
                     processQuery(sender, query, retryCount + 1);
                 } else {
-                    sendFormattedResponse(sender, query, ChatColor.RED + "请求失败，请稍后再试");
+                    sendFormattedResponse(sender, ChatColor.RED + "请求失败，请稍后再试");
                 }
             } catch (Exception e) {
                 sendErrorMessage(sender, "错误: " + e.getMessage());
@@ -133,16 +174,14 @@ public class MeowPlugin extends JavaPlugin {
         }
     }
 
-    private void sendFormattedResponse(CommandSender sender, String query, String answer) {
+    private void sendFormattedResponse(CommandSender sender, String answer) {
         getServer().getScheduler().runTask(this, () -> {
             String msg = String.format(
-                    ChatColor.YELLOW + "[Meow] " +
+                    ChatColor.RED + "🤖Deepseek V1" +
+                            ChatColor.GRAY+" | "+ChatColor.WHITE+"星风💬："+
                     ChatColor.AQUA + "@%s" +
-                    ChatColor.GRAY + "(%s)" +
-                    ChatColor.WHITE + ": " +
-                    "%s", // 颜色由调用方控制
+                    ChatColor.WHITE+ "%s", // 颜色由调用方控制
                     sender.getName(),
-                    query,
                     answer
             );
 
