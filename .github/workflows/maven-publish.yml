@@ -3,7 +3,7 @@ name: Java CI with Maven
 on:
   push:
     paths:
-      - '**/**'  # 监控所有文件的更改
+      - '**/**'  # 监控所有文件的更改?怎么不触发了
   pull_request:
     paths:
       - '**/**'  # 监控所有文件的更改
